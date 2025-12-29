@@ -42,3 +42,20 @@ func NewMetadataFromPath(path string, info os.FileInfo) file.Metadata {
 		MIMEType: mimeType,
 	}
 }
+
+// NewMetadataFromPathWithoutMIME is a fast-path variant of NewMetadataFromPath that does not attempt to open/read
+// the file to determine MIME type. This is useful when MIME is computed asynchronously in a separate stage.
+func NewMetadataFromPathWithoutMIME(path string, info os.FileInfo) file.Metadata {
+	uid, gid := getXid(info)
+	ty := file.TypeFromMode(info.Mode())
+
+	return file.Metadata{
+		FileInfo: info,
+		Path:     path,
+		Type:     ty,
+		// unsupported across platforms
+		UserID:   uid,
+		GroupID:  gid,
+		MIMEType: "",
+	}
+}

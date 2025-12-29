@@ -27,6 +27,7 @@ type directoryIndexer struct {
 	errPaths          map[string]error
 	tree              filetree.ReadWriter
 	index             filetree.Index
+	mimeIndexer       *mimeIndexer
 }
 
 func newDirectoryIndexer(path, base string, visitors ...PathIndexVisitor) *directoryIndexer {
@@ -59,6 +60,15 @@ func newDirectoryIndexer(path, base string, visitors ...PathIndexVisitor) *direc
 }
 
 func (r *directoryIndexer) build() (filetree.Reader, filetree.IndexReader, error) {
+	// MIME type detection requires opening/reading each file header which is expensive if done serially while walking.
+	// To speed up indexing we compute MIME types concurrently and update the file index entries after they are added.
+	r.mimeIndexer = newMimeIndexer(r.index, defaultMIMEWorkerCount(), defaultMIMEQueueSize())
+	defer func() {
+		if r.mimeIndexer != nil {
+			r.mimeIndexer.CloseAndWait()
+		}
+	}()
+
 	return r.tree, r.index, indexAllRoots(r.path, r.indexTree)
 }
 
@@ -334,8 +344,13 @@ func (r directoryIndexer) addFileToIndex(p string, info os.FileInfo) error {
 		return err
 	}
 
-	metadata := NewMetadataFromPath(p, info)
+	// Fast-path: do not compute MIME here (it requires opening the file). We compute MIME concurrently via mimeIndexer.
+	metadata := NewMetadataFromPathWithoutMIME(p, info)
 	r.index.Add(*ref, metadata)
+
+	if r.mimeIndexer != nil {
+		r.mimeIndexer.Enqueue(*ref, p)
+	}
 
 	return nil
 }
