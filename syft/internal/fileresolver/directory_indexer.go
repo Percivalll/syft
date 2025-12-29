@@ -21,6 +21,7 @@ import (
 type PathIndexVisitor func(string, string, os.FileInfo, error) error
 
 type directoryIndexer struct {
+	strict            bool
 	path              string
 	base              string
 	pathIndexVisitors []PathIndexVisitor
@@ -59,6 +60,18 @@ func newDirectoryIndexer(path, base string, visitors ...PathIndexVisitor) *direc
 }
 
 func (r *directoryIndexer) build() (filetree.Reader, filetree.IndexReader, error) {
+	if r.strict {
+		if !filepath.IsAbs(r.path) {
+			return nil, nil, fmt.Errorf("path is not absolute: %s", r.path)
+		}
+		p, err := os.Stat(r.path)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to stat path: %s", err)
+		}
+		if !p.IsDir() {
+			return nil, nil, fmt.Errorf("path is not a directory: %s", r.path)
+		}
+	}
 	return r.tree, r.index, indexAllRoots(r.path, r.indexTree)
 }
 
@@ -403,6 +416,15 @@ func (r directoryIndexer) addSymlinkToIndex(p string, info os.FileInfo) (string,
 				return "", fmt.Errorf("unable to resolve relative path for path=%q: %w", p, err)
 			}
 			linkTarget = filepath.Join(r.base, filepath.Clean(filepath.Join("/", dir, linkTarget)))
+		}
+	}
+	if r.strict {
+		relPath, err := filepath.Rel(r.path, linkTarget)
+		if err != nil {
+			return "", fmt.Errorf("unable to resolve relative path for path=%q: %w", p, err)
+		}
+		if strings.HasPrefix(relPath, "..") {
+			return "", nil
 		}
 	}
 

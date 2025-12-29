@@ -542,6 +542,14 @@ func TestNewChrootContext_BaseValidation(t *testing.T) {
 			cwd:                        testDir,
 			expectedRootRelativeToBase: filepath.Join("path", "to"),
 		},
+		{
+			name:                       "base outside of root",
+			root:                       filepath.Join(absolute, "somewhere"),
+			base:                       filepath.Join(absolute, "path", "to"),
+			cwd:                        testDir,
+			expectedRootRelativeToBase: "",
+			wantErr:                    require.Error,
+		},
 	}
 
 	for _, tt := range tests {

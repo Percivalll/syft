@@ -52,6 +52,9 @@ func NewChrootContext(root, base, cwd string) (*ChrootContext, error) {
 
 		rootRelativeToBase, err = filepath.Rel(absRoot, cleanBase) // validate that base is within root
 		if err != nil {
+			return nil, fmt.Errorf("unable to determine relative path from root=%q to base=%q: %w", cleanRoot, cleanBase, err)
+		}
+		if strings.HasPrefix(rootRelativeToBase, "..") {
 			return nil, fmt.Errorf("base path %q is not within root path %q: %w", cleanBase, cleanRoot, err)
 		}
 	}
