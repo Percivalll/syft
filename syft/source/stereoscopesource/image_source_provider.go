@@ -5,11 +5,14 @@ import (
 
 	"github.com/anchore/go-collections"
 	"github.com/anchore/stereoscope"
+	"github.com/anchore/stereoscope/pkg/file"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/source"
 )
 
 const ImageTag = "image"
+
+var rootTempDirGenerator = file.NewTempDirGenerator("stereoscope")
 
 type ProviderConfig struct {
 	StereoscopeImageProviderConfig stereoscope.ImageProviderConfig
@@ -45,14 +48,19 @@ func (l stereoscopeImageSourceProvider) Provide(ctx context.Context) (source.Sou
 
 func Providers(cfg ProviderConfig) []collections.TaggedValue[source.Provider] {
 	stereoscopeProviders := collections.TaggedValueSet[source.Provider]{}
-	providers := stereoscope.ImageProviders(cfg.StereoscopeImageProviderConfig)
-	for _, provider := range providers {
-		var sourceProvider source.Provider = stereoscopeImageSourceProvider{
-			stereoscopeProvider: provider.Value,
-			cfg:                 cfg,
-		}
-		stereoscopeProviders = append(stereoscopeProviders,
-			collections.NewTaggedValue(sourceProvider, append([]string{provider.Value.Name(), ImageTag}, provider.Tags...)...))
-	}
+	tempDirGenerator := rootTempDirGenerator.NewGenerator()
+	stereoscopeProviders = append(stereoscopeProviders,
+		collections.NewTaggedValue[source.Provider](
+			stereoscopeImageSourceProvider{
+				stereoscopeProvider: NewDockerEngineGraphDriverProvider(
+					tempDirGenerator,
+					cfg.StereoscopeImageProviderConfig.UserInput),
+				cfg: cfg,
+			},
+			DockerGraphDriver,
+			stereoscope.DirTag,
+			ImageTag,
+		),
+	)
 	return stereoscopeProviders
 }
