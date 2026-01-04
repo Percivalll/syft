@@ -56,11 +56,6 @@ func (p *dockerGraphDriverProvider) Name() string {
 }
 
 func (p *dockerGraphDriverProvider) Provide(_ context.Context) (*image.Image, error) {
-	if !strings.HasPrefix(p.path, DockerGraphdriverSource) {
-		// not for us; allow other providers to attempt resolution without surfacing an error
-		return nil, fmt.Errorf("%w: expected %q<imageID>|<engineRootDir>", os.ErrNotExist, DockerGraphdriverSource)
-	}
-
 	imageID, engineRoot, err := parseDockerEngineUserInput(p.path)
 	if err != nil {
 		// user explicitly selected this provider scheme; surface a clear error
@@ -127,19 +122,13 @@ func (p *dockerGraphDriverProvider) Provide(_ context.Context) (*image.Image, er
 }
 
 func parseDockerEngineUserInput(userInput string) (imageID string, engineRoot string, err error) {
-	if !strings.HasPrefix(userInput, DockerGraphdriverSource) {
+	sepIdx := strings.IndexAny(userInput, "|")
+	if sepIdx <= 0 || sepIdx >= len(userInput)-1 {
 		return "", "", fmt.Errorf("invalid docker-engine user input: expected %q<imageID>|<engineRootDir>", DockerGraphdriverSource)
 	}
 
-	rest := strings.TrimPrefix(userInput, DockerGraphdriverSource)
-	// allow either '|' or '@' separators; '|' is the documented canonical form.
-	sepIdx := strings.IndexAny(rest, "|@")
-	if sepIdx <= 0 || sepIdx >= len(rest)-1 {
-		return "", "", fmt.Errorf("invalid docker-engine user input: expected %q<imageID>|<engineRootDir>", DockerGraphdriverSource)
-	}
-
-	imageID = strings.TrimSpace(rest[:sepIdx])
-	engineRoot = strings.TrimSpace(rest[sepIdx+1:])
+	imageID = strings.TrimSpace(userInput[:sepIdx])
+	engineRoot = strings.TrimSpace(userInput[sepIdx+1:])
 	if imageID == "" || engineRoot == "" {
 		return "", "", fmt.Errorf("invalid docker-engine user input: expected %q<imageID>|<engineRootDir>", DockerGraphdriverSource)
 	}
@@ -147,14 +136,14 @@ func parseDockerEngineUserInput(userInput string) (imageID string, engineRoot st
 	// normalize image id
 	imageID = strings.TrimPrefix(imageID, "sha256:")
 	if len(imageID) < 12 || len(imageID) > 64 {
-		return "", "", fmt.Errorf("invalid docker-engine imageID: expected 12-64 characters", imageID)
+		return "", "", fmt.Errorf("invalid docker-engine imageID %q: expected 12-64 characters", imageID)
 	}
 	if _, err := hex.DecodeString(imageID); err != nil {
-		return "", "", fmt.Errorf("invalid docker-engine imageID: expected hex characters", imageID)
+		return "", "", fmt.Errorf("invalid docker-engine imageID %q: expected hex characters", imageID)
 	}
 
 	if !filepath.IsAbs(engineRoot) {
-		return "", "", fmt.Errorf("invalid docker-engine engineRoot: expected absolute path", engineRoot)
+		return "", "", fmt.Errorf("invalid docker-engine engineRoot %q: expected absolute path", engineRoot)
 	}
 
 	return imageID, filepath.Clean(engineRoot), nil

@@ -61,6 +61,20 @@ func Providers(cfg ProviderConfig) []collections.TaggedValue[source.Provider] {
 			stereoscope.DirTag,
 			ImageTag,
 		),
+		collections.NewTaggedValue[source.Provider](
+			stereoscopeImageSourceProvider{
+				stereoscopeProvider: NewContainerdDirProvider(
+					tempDirGenerator,
+					cfg.StereoscopeImageProviderConfig.UserInput,
+					cfg.StereoscopeImageProviderConfig.Platform,
+				),
+				cfg: cfg,
+			},
+			ContainerdDir,
+			stereoscope.DirTag,
+			ImageTag,
+		),
 	)
+
 	return stereoscopeProviders
 }

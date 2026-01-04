@@ -130,7 +130,7 @@ require (
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
-	github.com/containerd/containerd v1.7.29 // indirect
+	github.com/containerd/containerd v1.7.29
 	github.com/containerd/containerd/api v1.8.0 // indirect
 	github.com/containerd/continuity v0.4.4 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
@@ -206,7 +206,7 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
-	github.com/opencontainers/image-spec v1.1.1 // indirect
+	github.com/opencontainers/image-spec v1.1.1
 	github.com/opencontainers/runtime-spec v1.1.0 // indirect
 	github.com/opencontainers/selinux v1.13.0 // indirect
 	github.com/pborman/indent v1.2.1 // indirect
@@ -282,6 +282,7 @@ require (
 require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/gpustack/gguf-parser-go v0.22.1
+	go.etcd.io/bbolt v1.3.10
 )
 
 require (
